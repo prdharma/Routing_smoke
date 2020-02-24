@@ -1,0 +1,88 @@
+testbed:
+    name: Smoke_test
+    servers:
+        tftp:
+            server: "issu-lnx9"
+            address: "223.255.254.245"
+            path: ""
+            username: "root"
+            password: "cisco123"
+
+devices:
+    mcp-term11:
+        type: 'ISO'
+        connections:
+          a:
+            protocol: telnet
+            ip: "172.27.56.13"
+    Router:
+        type: 'ASR'
+        connections:
+          a:
+            protocol: telnet
+            ip: "172.27.56.13"
+            port: 2002
+            
+          b:
+            protocol: telnet
+            ip: "172.27.56.13"
+            port: 2004
+    r7200-a:
+        type: 'Pagent'
+        connections:
+          a:
+            protocol: telnet
+            ip: "172.27.56.13"
+            port: 2006
+    r7200-b:
+        type: 'Pagent'
+        connections:
+          a:
+            protocol: telnet
+            ip: "172.27.56.13"
+            port: 2007
+            
+    r7200-c:
+        type: 'pagent'
+        connections:
+           a:
+            protocol: telnet
+            ip: "172.27.56.13"
+            port: 2008
+
+topology:
+    Router:
+        interfaces:
+            GigabitEthernet0/3/0:
+                link: uut1_link_1
+                type: ethernet
+            GigabitEthernet0/3/1:
+                link: uut1_link_2
+                type: ethernet
+            GigabitEthernet0/3/2:
+                link: uut1_link_3
+                type: ethernet
+
+    r7200-a:
+        interfaces:
+            GigabitEthernet0/1:
+                link: rtr1_link_1
+                type: ethernet
+                
+    r7200-b:
+        interfaces:
+            GigabitEthernet0/1:
+                link: rtr2_link_1
+                type: ethernet
+            GigabitEthernet0/2:
+                link: rtr2_link_2
+                type: ethernet
+            GigabitEthernet0/3:
+                link: rtr2_link_3
+                type: ethernet
+                
+    r7200-c:
+        interfaces:
+            GigabitEthernet0/1:
+                link: rtr3_link_1
+                type: ethernet

@@ -1,0 +1,16 @@
+#******************************************************************************
+# Imports : https://docs.python.org/3/reference/import.html
+#******************************************************************************
+import os
+import logging
+from ats import topology
+from ats.easypy import run
+from ats.datastructures.logic import And, Or, Not
+
+#tb = topology.loader.load('/users/prdharma/prabu/acl.yaml')
+
+def main():
+	parameters = {'uut1': 'Router','rtr1': 'r7200-a','rtr2': 'r7200-b', 'uutInt1' : 'GigabitEthernet0/3/0', 'uutInt2' : 'GigabitEthernet0/3/1','rtr1Int' : 'GigabitEthernet0/1', 'rtr2Int' : 'GigabitEthernet0/1'}
+	run(testscript = '/users/prdharma/prabu/mcp_hw_qos.py', **parameters)
+    
+   
