@@ -1,7 +1,7 @@
 # Script Header
-# $Id: mcp_hw_qos
+# Id: mcp_hw_qos
 # Copyright (c) 2006 Cisco Systems, Inc.
-#Name: mcp_hw_qos
+# Name: mcp_hw_qos
 #
 # Purpose: Automation of QoS smoke test on MCP.
 #          This script has the following test cases - 
@@ -36,6 +36,9 @@
 # See Also:
 #
 # End of Header
+#
+######################################################################
+
 #######################################################################
 ###                 TEST SCRIPT INITIALIZATION BLOCK                ###
 #######################################################################
@@ -70,123 +73,6 @@ rtr1IP = '1.1.1.1'
 rtr2IP = '3.3.3.3'
 rtr2lo101IP = '101.101.101.101'
 
-
-#######################################################################
-###                      COMMON SETUP SECTION                       ###
-#######################################################################
-
-class ScriptCommonSetup(aetest.CommonSetup):
-
-    logger.info(banner('Executing common_setup section'))
-    @aetest.subsection
-    def validate_params(self, testbed, **parameters):
-        for parameter in parameters:
-            assert parameter in mandatory_parameters, \
-            self.failed("Missing parameter % from mandatory_parameters" % parameter)
-            
-    @aetest.subsection
-    def get_testbed_info(self, uut1, rtr1, rtr2, uutInt1, uutInt2, rtr1Int, rtr2Int, testbed, **parameters):
-    
-        logger.info('Connecting to Router')
-        uut1 = testbed.devices[uut1]
-        rtr1 = testbed.devices[rtr1]
-        rtr2 = testbed.devices[rtr2]
-        
-        self.parent.parameters['uut1'] = uut1
-        self.parent.parameters['rtr1'] = rtr1
-        self.parent.parameters['rtr2'] = rtr2
-            
-        uut1.connect()
-        assert uut1.connected, "Could not connect to device: %" % uut1.name
-        rtr1.connect()
-        assert rtr1.connected, "Could not connect to device: %" % rtr1.name
-        rtr2.connect()
-        assert rtr2.connected, "Could not connect to device: %" % rtr2.name
-        
-        #Grab the pre router check info before we config the UUT
-        
-        uut1.execute("show version")
-        
-        #
-        logger.info("Configuring uut1 Interfaces IP address")
-        try:
-            uut1_config = '''
-            ip routing
-            #ip cef  
-            no cdp run
-            !
-            interface {}
-            ip address {} 255.255.255.0
-            no shut
-            no cdp enable
-            exit
-            !
-            no arp {}
-            !
-            interface {}
-            ip address {} 255.255.255.0
-            no shut
-            no cdp enable
-            exit
-            !
-            ip route {} 255.255.255.255 {}
-            !
-            no arp {}
-            '''.format((uutInt1),(uutInt1IP),(rtr1IP),(uutInt2),(uutInt2IP),(rtr2lo101IP),(rtr2IP),(rtr2IP))
-            uut1.configure(uut1_config)
-        except Exception as e:
-            logger.info("uut1 configuration error")
-            self.failed(goto=['exit'])
-           
-        logger.info("Configuring rtr1 Interfaces IP address")   
-        try:
-            rtr1_Config = '''
-            ip cef
-            !
-            interface {}
-            ip address {} 255.255.255.0
-            no shut
-            no cdp enable
-            no keepalive
-            exit
-            !
-            ip route 0.0.0.0 0.0.0.0 {}
-            !
-            no arp {}
-            '''.format((rtr1Int),(rtr1IP),(uutInt1IP),(uutInt1IP))
-            rtr1.configure(rtr1_Config)
-        except Exception as e:              
-            logger.info("rtr1 configuration error")
-            self.failed(goto=['exit'])        
-           
-        logger.info("Configuring rtr2 Interfaces IP address")
-        
-        try:
-            rtr2_config = '''
-            ip cef
-            !
-            interface {}
-            ip address {} 255.255.255.0
-            no shut
-            no cdp enable
-            no keepalive
-            exit
-            !
-            interface Loopback101
-            ip address {} 255.255.255.255
-            !
-            ip route 0.0.0.0 0.0.0.0 {}
-            !
-            no arp {}
-            '''.format((rtr2Int),(rtr2IP),(rtr2lo101IP),(uutInt2IP),(uutInt2IP))
-            rtr2.configure(rtr2_config)
-        except Exception as e:
-            logger.info("rtr2 configuration error")
-            self.failed(goto=['exit'])
-            
-        logger.info(banner('Setup configuration sccessfull'))
-        
- 
 #######################################################################
 ###                          Ping test                              ###
 #######################################################################
@@ -222,17 +108,139 @@ def ping_test(device, ip, count = '5', ipv6= False):
         return 1
     else:
         return 0   
+
+#######################################################################
+###                      COMMON SETUP SECTION                       ###
+#######################################################################
+
+class ScriptCommonSetup(aetest.CommonSetup):
+
+    logger.info(banner('Executing common_setup section'))
+    
+    @aetest.subsection
+    def validate_params(self, testbed, **parameters):
+        for parameter in parameters:
+            assert parameter in mandatory_parameters, \
+            self.failed("Missing parameter % from mandatory_parameters" % parameter)
             
+    @aetest.subsection
+    def get_testbed_info(self, uut1, rtr1, rtr2, uutInt1, uutInt2, rtr1Int, rtr2Int, testbed, **parameters):
+    
+        logger.info('Connecting to Router')
+        uut1 = testbed.devices[uut1]
+        rtr1 = testbed.devices[rtr1]
+        rtr2 = testbed.devices[rtr2]
+        
+        self.parent.parameters['uut1'] = uut1
+        self.parent.parameters['rtr1'] = rtr1
+        self.parent.parameters['rtr2'] = rtr2
+            
+        uut1.connect()
+        assert uut1.connected, "Could not connect to device: %" % uut1.name
+        rtr1.connect()
+        assert rtr1.connected, "Could not connect to device: %" % rtr1.name
+        rtr2.connect()
+        assert rtr2.connected, "Could not connect to device: %" % rtr2.name
+        
+        #per_router_check need to add here
+        
+        uut1.execute("show version")
+        
+        #uut1 configuration
+        logger.info("Configuring uut1 Interfaces IP address")
+        try:
+            uut1_config = '''
+            ip routing
+            #ip cef  
+            no cdp run
+            !
+            interface {}
+            ip address {} 255.255.255.0
+            no shut
+            no cdp enable
+            exit
+            !
+            no arp {}
+            !
+            interface {}
+            ip address {} 255.255.255.0
+            no shut
+            no cdp enable
+            exit
+            !
+            ip route {} 255.255.255.255 {}
+            !
+            no arp {}
+            '''.format((uutInt1),(uutInt1IP),(rtr1IP),(uutInt2),(uutInt2IP),(rtr2lo101IP),(rtr2IP),(rtr2IP))
+            uut1.configure(uut1_config)
+            
+        except Exception as e:
+            logger.info("uut1 configuration error")
+            self.failed(goto=['exit'])
+        
+        #rtr1 configuration        
+        logger.info("Configuring rtr1 interfaces IP address")   
+        try:
+            rtr1_Config = '''
+            ip cef
+            !
+            interface {}
+            ip address {} 255.255.255.0
+            no shut
+            no cdp enable
+            no keepalive
+            exit
+            !
+            ip route 0.0.0.0 0.0.0.0 {}
+            !
+            no arp {}
+            '''.format((rtr1Int),(rtr1IP),(uutInt1IP),(uutInt1IP))
+            rtr1.configure(rtr1_Config)
+            
+        except Exception as e:              
+            logger.info("rtr1 configuration error")
+            self.failed(goto=['exit'])        
+           
+        logger.info("Configuring rtr2 interfaces IP address")
+        
+        #rtr2 configuration
+        try:
+            rtr2_config = '''
+            ip cef
+            !
+            interface {}
+            ip address {} 255.255.255.0
+            no shut
+            no cdp enable
+            no keepalive
+            exit
+            !
+            interface Loopback101
+            ip address {} 255.255.255.255
+            !
+            ip route 0.0.0.0 0.0.0.0 {}
+            !
+            no arp {}
+            '''.format((rtr2Int),(rtr2IP),(rtr2lo101IP),(uutInt2IP),(uutInt2IP))
+            rtr2.configure(rtr2_config)
+            
+        except Exception as e:
+            logger.info("rtr2 configuration error")
+            self.failed(goto=['exit'])
+            
+        logger.info(banner('Setup configuration successfull'))
+        
 #######################################################################
 ###                          TESTCASE BLOCK                         ###
 #######################################################################
 
-
 class IP_Connectivity_qos (aetest.Testcase):
+
     uid = "IP_Connectivity_qos"
+    
     @aetest.test
     def section_test(self, uut1, rtr1, rtr2):
-        logger.info(banner("Verify IP Connectivity before QoS test"))
+        logger.info(banner("Verify iP Connectivity before QoS test"))
         logger.info("Verifying ping before QoS configuration")
         logger.info(title('Setup'))
         
@@ -240,13 +248,15 @@ class IP_Connectivity_qos (aetest.Testcase):
         if not ping_test(rtr1, rtr2IP, ipv6 = False):
             self.failed('Connectivity failure between rtr1 and rtr2')
         else:
-            logger.info('ping successfull')
+            logger.info('Ping successfull')
 
 class MCP_ST_IFT_006(aetest.Testcase): 
-    uid = "MCP_ST_IFT_006"           
+
+    uid = "MCP_ST_IFT_006"
+    
     @aetest.test
     def section_test(self, uut1, rtr1, rtr2, uutInt1, rtr2Int):
-        logger.info(banner("QoS Input Classification and Marking"))
+        logger.info(banner("QoS input classification and marking"))
         logger.info("Verify input 'match-any' classification and precedence marking")
         
         precValue = "3"
@@ -308,16 +318,18 @@ class MCP_ST_IFT_006(aetest.Testcase):
             '''.format((rtr2Int))
             rtr2.configure(rtr2_config)
         
-            logger.info(banner("unconfiguring the policy map and access lists successfull"))
+            logger.info(banner("Unconfiguring the policy map and access lists successfull"))
             
         except Exception as e:
             self.failed("unconfiguring error")
      
 class MCP_ST_IFT_007(aetest.Testcase):
+
     uid = "MCP_ST_IFT_007"
+    
     @aetest.test
     def section_test(self, uut1, rtr1, rtr2, uutInt2, rtr2Int):
-        logger.info(banner("QoS Output Classification and Marking"))
+        logger.info(banner("QoS output classification and marking"))
         logger.info("Verify output acl classification and dscp marking")
         logger.info(title('Setup'))
         
@@ -355,7 +367,7 @@ class MCP_ST_IFT_007(aetest.Testcase):
         
         #Verifying ping goes through to rtr2IP
         if not ping_test(rtr1, rtr2IP, count = '10', ipv6 = False):
-            self.failed("test failed: Packet marking not working")
+            self.failed("Test failed: Packet marking not working")
         else:
             logger.info("Packets getting classified and marked correctly")
    
@@ -380,16 +392,18 @@ class MCP_ST_IFT_007(aetest.Testcase):
             '''.format((rtr2Int))
             rtr2.configure(rtr2_config)
             
-            logger.info(banner("unconfiguring the policy map and access lists scuccessfull"))
+            logger.info(banner("Unconfiguring the policy map and access lists scuccessfull"))
             
         except  Exception as e:
-            self.failed("unconfiguring error")        
+            self.failed("Unconfiguring error")        
            
 class MCP_ST_IFT_008(aetest.Testcase):
+
     uid = "MCP_ST_IFT_008"
+    
     @aetest.test
     def section_test(self, uut1, rtr1, rtr2, uutInt1, uutInt2, rtr2Int):
-        logger.info(banner("QoS Classification and Marking - Multiple service-policies"))
+        logger.info(banner("QoS classification and marking - multiple service-policies"))
         logger.info("Verify ip precedence and dscp classification and marking")
         logger.info(title('Setup'))
             
@@ -445,7 +459,7 @@ class MCP_ST_IFT_008(aetest.Testcase):
             
         #Verifying ping goes through to rtr2IP    
         if not ping_test(rtr1, rtr2IP, count = '10', ipv6 = False):
-            self.failed("test failed: Packet marking not working")
+            self.failed("Test failed: Packet marking not working")
         else:
             logger.info("Packets getting classified and marked correctly")
             
@@ -478,10 +492,10 @@ class MCP_ST_IFT_008(aetest.Testcase):
             '''.format((rtr2Int))
             rtr2.configure(rtr2_config)
             
-            logger.info("unconfiguration scuccessfull")
+            logger.info("Unconfiguration scuccessfull")
             
         except Exception as e:
-            self.failed("unconfiguration error")
+            self.failed("Unconfiguration error")
 
 class MCP_ST_IFT_009(aetest.Testcase):
     uid ="MCP_ST_IFT_009"
@@ -528,7 +542,7 @@ class MCP_ST_IFT_009(aetest.Testcase):
 
         #Verifying ping goes through to rtr2IP
         if not ping_test(rtr1, rtr2IP, count = '10', ipv6 = False):
-            self.failed("test failed: Packet marking not working")
+            self.failed("Test failed: Packet marking not working")
         else:
             logger.info("Packets getting classified and marked correctly")
             
@@ -553,23 +567,24 @@ class MCP_ST_IFT_009(aetest.Testcase):
             '''.format((rtr2Int))
             rtr2.configure(rtr2_config)
                 
-            logger.info("policy map and access lists configuration scuccessfull")
+            logger.info("Policy map and access lists configuration scuccessfull")
                 
         except Exception as e:
-            logger.info("configuration error")       
+            logger.info("Configuration error")       
 
 #######################################################################
 ##                    COMMON CLEANUP SECTION                        ###
 #######################################################################         
 
 class CommonCleanup(aetest.CommonCleanup):
+
     @aetest.subsection
     def section_cleanup(self, uut1, rtr1, rtr2, uutInt2, uutInt1, rtr1Int, rtr2Int):
     
         logger.info(banner("common_cleanup section"))
         
-       # unconfiguration section            
-       # unconfiguration section            
+        #unconfiguration section            
+        #unconfiguration section            
         try:
             logger.info("uut1 unconfiguration")        
             uut1_Unconfig = '''
@@ -586,6 +601,7 @@ class CommonCleanup(aetest.CommonCleanup):
             no ip route {} 255.255.255.255 {}
             '''.format((uutInt1),(uutInt2),(rtr2lo101IP),(rtr2IP))
             uut1.configure(uut1_Unconfig)
+            
         except Exception as e:
             self.failed("rtr2 configuration error")         
                           
@@ -600,6 +616,7 @@ class CommonCleanup(aetest.CommonCleanup):
             no ip route 0.0.0.0 0.0.0.0 {}
             '''.format((rtr1Int),(uutInt1IP))
             rtr1.configure(rtr1_unconfig)
+            
         except Exception as e:    
             self.failed("rtr1 unconfiguration error")
         
@@ -618,7 +635,9 @@ class CommonCleanup(aetest.CommonCleanup):
             no ip route 0.0.0.0 0.0.0.0 {}
             '''.format((rtr2Int),(rtr2lo101IP),(uutInt2IP))
             rtr2.configure(rtr2_unconfig)
+            
         except Exception as e:    
             self.failed("rtr2 unconfiguration error")
             
         logger.info("unconfiguration successfull")
+        logger.info(banner("mcp_hw_qos script successfully completed"))
