@@ -41,9 +41,8 @@
 #######################################################################
 #
 # AtsAuto package would include all of the relevant packages
-# required for ATS Automation: Tclx, Expect, Atslog, Cisco, Csccon, Control,
-#                              Parser, Catlib, AEtest, Autoeasy, Async
-#
+# required for ATS Automation: pyats
+#                              
 # Following needed for pre/post router check
 #
 # Needs to be reset for each run because of AM
@@ -73,6 +72,7 @@
 #  This procedure configures the router with a given
 #  config array and checks whether there are any
 #  configuration errors
+#
 ################################################################
 
 from ats.aetest import CommonSetup
@@ -106,8 +106,10 @@ rtr2lo101IPv6 = '101::101'
 #######################################################################
 
 def ping_test(device, ip, ipv6= False):
+
     ping_flag = "fail"
     ping_try = 5
+    
     while (ping_flag == "fail" and ping_try > 0):
         logger.info("Ping Attempt : %d" % (5 - ping_try + 1))
         try:
@@ -136,7 +138,6 @@ def ping_test(device, ip, ipv6= False):
     else:
         return 0
 
-
 #######################################################################
 ###                      COMMON SETUP SECTION                       ###
 #######################################################################
@@ -144,6 +145,7 @@ def ping_test(device, ip, ipv6= False):
 class ScriptCommonSetup(aetest.CommonSetup):
 
     logger.info(banner('Executing common_setup section'))
+    
     @aetest.subsection
     def validate_params(self, testbed, **parameters):
         for parameter in parameters:
@@ -169,9 +171,10 @@ class ScriptCommonSetup(aetest.CommonSetup):
         rtr2.connect()
         assert rtr2.connected, "Could not connect to device: %" % rtr2.name
 
-
+        #router per_check need to here
+        
         uut1.execute("show version")
-
+        
         logger.info("Configuring uut1 Interfaces IP address")
         try:
             uut1_config = '''
@@ -256,14 +259,16 @@ class ScriptCommonSetup(aetest.CommonSetup):
             logger.info("rtr2 configuration error")
             self.failed(goto=['exit'])
 
-        logger.info('Setup configure sccessfully')
+        logger.info('Setup configuration sccessfully')
 
 #######################################################################
 ###                          TESTCASE BLOCK                         ###
 #######################################################################
 
 class IP_Connectivity(aetest.Testcase):
+
     uid = "IP_Connectivity"
+    
     @aetest.test
     def section_test(self,uut1,rtr1,rtr2):
         logger.info(banner("IP Connectivity"))
@@ -271,8 +276,6 @@ class IP_Connectivity(aetest.Testcase):
 
         target_ip_1 = "101.101.101.101"
         target_ip_2 = "3.3.3.3"
-
-        #router per_check need to here
 
         uut1.execute("set platform software trace all debug")
 
@@ -308,19 +311,22 @@ class IP_Connectivity(aetest.Testcase):
             uut1.execute("show ipv6 neighbors")
             rtr1.execute("show ipv6 neighbors")
             rtr2.execute("show ipv6 neighbors")
+            
         except Exception as e:
             logger.info("IPv6 Connectivity Failure")
 
-        logger.info(banner("ACL configuration successfull"))
+        logger.info(banner("acl configuration successfull"))
 
 class Standard_ACL(aetest.Testcase):
-    uid = "Standard_ACL"
-    @aetest.test
-    def section_test(self,uut1,rtr1,rtr2,uutInt1):
-        logger.info(banner("Standard ACL"))
-        logger.info("Verifying Standard ACL Functionality")
 
-        #configuring standard ACL
+    uid = "Standard_ACL"
+    
+    @aetest.test
+    def section_test(self, uut1, rtr1, rtr2, uutInt1):
+        logger.info(banner("Standard ACL"))
+        logger.info("Verifying standard ACL functionality")
+
+        #ACL standard configuring
         try:
             uut1_config = '''
             access-list 1 deny any
@@ -330,22 +336,17 @@ class Standard_ACL(aetest.Testcase):
             uut1.configure(uut1_config)
 
         except Exception as e:
-            self.failed("Config Error when configuring Standard ACL")
+            self.failed("Config error when configuring standard ACL")
 
 
         #The following commands are added for debugging
-
         uut1.execute("show run")
         uut1.execute("show platform software access-list rp active statistics")
         uut1.execute("show platform software access-list fp active statistics")
         time.sleep(10)
-        uut1.execute("show interface %s" % (uutInt1))
-
-        #########comment (need to check with team)
-        #########deb platform hardware cpp feature acl datapath ip
+        uut1.execute("show interface " + uutInt1)
 
         #Ping rtr2 from rtr1 and ensure ping fails
-
         target_ip = "101.101.101.101"
         ping_status_ipv4 = rtr1.execute("ping " +target_ip )
         output_value_ipv4 = re.search('Success rate is (\d*)',ping_status_ipv4)
@@ -355,9 +356,10 @@ class Standard_ACL(aetest.Testcase):
             self.failed("Ping failed")
 
         time.sleep(10)
-        uut1.execute("show interface {}".format(uutInt1))
+        
+        uut1.execute("show interface " + uutInt1)
 
-        #Ensure Match counters on the deny ACL
+        #ensure match counters on the deny acl
         showACL = uut1.execute("show ip access-list 1")
         ace_match_count = re.search('(\d) matches',showACL)
         if int(ace_match_count.group(1)) in range(1,11):
@@ -366,7 +368,7 @@ class Standard_ACL(aetest.Testcase):
         else:
             self.failed("Cannot get match count for deny ace")
 
-        #Unbind ACL from interface and ensure Ping Succeeds
+        #unbind acl from interface and ensure Ping Succeeds
         try:
             uut1_config = '''
             interface {}
@@ -374,18 +376,18 @@ class Standard_ACL(aetest.Testcase):
             '''.format((uutInt1))
             uut1.configure(uut1_config)
         except Exception as e:
-            self.failed("Config Error when unbinding ACL from interface")
+            self.failed("Config error when unbinding ACL from interface")
 
         #The following commands are added for debugging
         uut1.execute("show platform software access-list rp active statistics")
         uut1.execute("show platform software access-list fp active statistics")
 
-        #Ensure Ping succeeds
+        #ensure ping succeeds
         target_ip = "101.101.101.101"
         if not ping_test(rtr1, target_ip, ipv6 = False):
             self.failed('Ping fails after unbinding ACL')
         else:
-            logger.info('ping successfull')
+            logger.info('Ping successfull')
 
     def cleanup(self):
         try:
@@ -399,11 +401,13 @@ class Standard_ACL(aetest.Testcase):
             self.failed("Config Error when unconfiguring Standard ACL")
 
 class Extended_ACL(aetest.Testcase):
+
     uid = "Extended_ACL"
+    
     @aetest.test
-    def section_test(self,uut1,rtr1,rtr2,uutInt2):
+    def section_test(self, uut1, rtr1, rtr2, uutInt2):
         logger.info(banner("Extended ACL"))
-        logger.info("Verifying Extended ACL functionality")
+        logger.info("Verifying extended ACL functionality")
 
         try:
             uut1_config = '''
@@ -412,8 +416,9 @@ class Extended_ACL(aetest.Testcase):
             ip access-group 101 out
             '''.format((uutInt2))
             uut1.configure(uut1_config)
+            
         except Exception as e:
-            self.failed("Config Error when configuring Extended ACL")
+            self.failed("Config error when configuring extended ACL")
 
         #The following commands are added for debugging
         uut1.execute("show platform software access-list rp active statistics")
@@ -434,6 +439,7 @@ class Extended_ACL(aetest.Testcase):
             logger.info('ping successfull')
 
         time.sleep(10)
+        
         #verify ACL match counters
         showACL = uut1.execute("show ip access-list 101")
         print(showACL)
@@ -445,7 +451,7 @@ class Extended_ACL(aetest.Testcase):
             else:
                 logger.info("Ping failed inspite of permit ACE")
 
-        #Unconfigure ACL and ensure Ping succeeds to rtr2IP
+        #unconfigure ACL and ensure Ping succeeds to rtr2IP
         try:
             uut1_config ='''
             interface {}
@@ -454,14 +460,14 @@ class Extended_ACL(aetest.Testcase):
             '''.format((uutInt2))
             uut1.configure(uut1_config)
         except Exception as e:
-            logger.info("Config Error when unconfiguring extended ACL")
+            logger.info("Config error when unconfiguring extended ACL")
             self.failed(goto=['exit'])
 
         #The following commands are added for debugging
         uut1.execute("show platform software access-list rp active statistics")
         uut1.execute("show platform software access-list fp active statistics")
 
-        #Ensure Ping succeeds
+        #Ensure ping succeeds
         target_ip = "3.3.3.3"
         if not ping_test(rtr1, target_ip, ipv6 = False):
             self.failed('Ping fails after unconfiguring ACL')
@@ -469,7 +475,9 @@ class Extended_ACL(aetest.Testcase):
             logger.info('ping successfull')
 
 class IPv6_ACL(aetest.Testcase):
+
     uid = "IPv6_ACL"
+    
     @aetest.test
     def section_test(self, uut1, rtr1, rtr2, uutInt2):
 
@@ -487,7 +495,7 @@ class IPv6_ACL(aetest.Testcase):
             uut1.configure(uut1_config)
 
         except Exception as e:
-            logger.info("Config Error when configuring Extended ACL")
+            logger.info("Config error when configuring extended ACL")
             self.failed(goto=['exit'])
 
         #The following command is added for debugging
@@ -504,13 +512,13 @@ class IPv6_ACL(aetest.Testcase):
         rtr2.execute("show log")
 
         #Ping the rtr2 IP in the deny list from rtr1 and ensure ping fails
-
         ping_status_ipv4 = rtr1.execute("ping ipv6 " +rtr2IPv6+' repeat 8')
         output_value_ipv4 = re.search('Success rate is (\d+)',ping_status_ipv4)
         if int(output_value_ipv4.group(1)) > 0 :
             self.failed("IPv6 Ping should fail for the denied IP address")
 
         uut1.execute("show log")
+        
         #Ping rtr2 loopback and ensure ping passes
         ping_status_ipv4 = rtr1.execute("ping ipv6 " + rtr2lo101IPv6+' repeat 18')
         output_value_ipv4 = re.search('Success rate is (\d+)',ping_status_ipv4)
@@ -518,34 +526,36 @@ class IPv6_ACL(aetest.Testcase):
             self.failed("Ping failed for the permitted ip address")
 
         uut1.execute("show log")
+        
         time.sleep(30)
 
         #The following commands are added for debugging
         uut1.execute("show platform software access-list rp active statistics")
         uut1.execute("show platform software access-list fp active statistics")
 
-        #set acl_val [router_show -device  $uut -cmd $acl_cmd]
         acl_val = uut1.execute(acl_cmd)
-
         matches = re.findall('(\d+) matches',acl_val)
 
         if int(matches[0]) == permit_pkt and int(matches[1]) == deny_pkt:
-            logger.info("show ipv6 access-list stats is correct")
+            logger.info("Show ipv6 access-list stats is correct")
         else:
-            logger.info("show ipv6 access-list stats is wrong")
+            logger.info("Show ipv6 access-list stats is wrong")
             logger.info("Expected {} permit matches & {} deny matches".format(permit_pkt,deny_pkt))
             self.failed("Got permit:{} deny:{}".format(matches[0],matches[1]))
 
 
         uut1.execute("request platform software trace rotate all")
+        
         time.sleep(10)
-
+  
+        #uut unconfigure
         try:
             uut1_config = '''
             interface {}
             no ipv6 traffic-filter smoke-ipv6 out
             '''.format((uutInt2))
             uut1.configure(uut1_config)
+            
         except Exception as e:
             logger.info("Config Error when unconfiguring Standard ACL")
 
@@ -601,5 +611,6 @@ class CommonCleanup(aetest.CommonCleanup):
         no ipv6 route ::/0 {}
         '''.format((rtr2Int),(rtr2IPv6+"/64"),(rtr2lo101IPv6+"/64"),(uutInt2IPv6))
         rtr2.configure(rtr2_Config)
-        
-        logger.info(banner("Cleanup section successfull"))
+     
+        logger.info("Cleanup section successfull")
+        logger.info(banner("mcp_hw_acl script successfully completed"))
