@@ -1,0 +1,147 @@
+'''
+# Global constants  
+set uutInt1 GigabitEthernet0/3/0
+set uutInt2 GigabitEthernet0/3/1
+set uutmgmtintf GigabitEthernet0
+set tftpserver 223.255.254.252
+set uutInt1IP 1.1.1.254
+set uutInt2IP 3.3.3.254
+set rtr1IP 1.1.1.1
+set rtr2IP 3.3.3.3
+set rtr2lo101IP 101.101.101.101
+
+# IPv6 address
+set uutInt1IPv6 1::2
+set uutInt2IPv6 3::2
+set rtr1IPv6 1::1
+set rtr2IPv6 3::1
+
+
+# sub interface IP
+set rtr1SubIntIP 6.6.6.1
+set uutSubInt1IP 6.6.6.2
+set uutSubInt2IP 7.7.7.2
+set rtr2SubIntIP 7.7.7.1
+
+set uutPreConfig "
+    logging buffer 10000000
+"
+
+'''
+
+# Used Networks through out the test
+   
+testbed:
+       name: smoke_test
+devices:
+    r7200-a:
+        type: 'router'        
+        connections:
+            a:
+                protocol: telnet
+                ip: 172.27.56.155
+                port: 2014
+
+    mcpdt-rp1-16:
+        type: 'router'    
+        connections:
+            a:
+                protocol: telnet
+                ip: 172.27.56.155
+                port: 2010
+    r7200-b:
+        type: 'router'    
+        connections:
+            a:
+                protocol: telnet
+                ip: 172.27.56.155
+                port: 2015
+    r7200-c:
+        type: 'router'    
+        connections:
+            a:
+                protocol: telnet
+                ip: 172.27.56.155
+                port: 2016                
+
+    
+topology:
+    r7200-a:
+        interfaces: 
+            GigabitEthernet0/1
+                link: link-1            
+                type:ethernet
+                profile: gige_profile
+            GigabitEthernet0/2
+                link: link-2
+                type: ethernet
+                profile: gige_profile
+
+    mcpdt-rp1-16:
+        interfaces: 
+            GigabitEthernet0/3/0
+                link: link-1            
+                type:ethernet
+                profile: gige_profile
+            GigabitEthernet0/3/3
+                link: link-2
+                type: ethernet
+                profile: gige_profile
+            GigabitEthernet0/3/1
+                link: link-3
+                type: ethernet
+                profile: gige_profile
+            intf0/2/0
+                link: link-4
+                type: ethernet
+                profile: ct3_profile              
+
+    r7200-b:
+        interfaces: 
+            GigabitEthernet0/1
+                link: link-1            
+                type:ethernet
+                profile: gige_profile
+            GigabitEthernet0/2
+                link: link-2
+                type: ethernet
+                profile:gige_profile_rj45
+            intf5/0
+                link: link-3
+                type: ethernet                 
+
+    r7200-b:
+        interfaces: 
+            GigabitEthernet0/1
+                link: link-1            
+                type:ethernet
+                profile: gige_profile_rj
+                
+                
+
+
+global:
+    script_net_list: 11 12 13 14 15 17 18 19 20 21 22 23 24
+    script_net_mask: 255.0.0.0
+server:
+    tftp_ip: 223.255.254.245
+    tftp_hostname: abrick
+    
+    
+Profile :
+    # Profile for GigE
+    ct3_profile:
+        Portcard: 2cht3-1
+        cntrl_prefix: ct3
+        speed : t3
+    # Profile for GigE    
+    gige_profile:
+        Portcard: GigabitEthernet
+        speed: ether1000
+        media : sfp
+    # Profile for GigE
+    gige_profile_rj45:
+        Portcard: GigabitEthernet
+        speed: ether1000
+        media : rj45
+
